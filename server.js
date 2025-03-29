@@ -1656,7 +1656,7 @@ EVALUATION: [your detailed evaluation]
 }
 
 // Serve static files like CSS, JS, etc.
-app.use(express.static(path.join(__dirname, 'public')));
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
 // Add better error handling middleware
 app.use((err, req, res, next) => {
