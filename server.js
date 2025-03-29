@@ -16,9 +16,24 @@ const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
 const MISTRAL_API_URL = 'https://api.mistral.ai/v1/chat/completions';
 
 // Initialize the Google Vision client
-const client = new vision.ImageAnnotatorClient({
-    keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,  // Use path to service account JSON file
+let client;
+if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+  // For Vercel environment - use the JSON content directly
+  const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+  client = new vision.ImageAnnotatorClient({
+    credentials: credentials
   });
+} else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  // For local development - use the file path
+  client = new vision.ImageAnnotatorClient({
+    keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
+  });
+} else {
+  // Fallback to API key if available
+  client = new vision.ImageAnnotatorClient({
+    apiKey: process.env.VISION_API_KEY
+  });
+}
 
 // Initialize the Google Generative AI client
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -45,7 +60,9 @@ app.get('/openingpage.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'openingpage.html'));
 });
 
-const upload = multer({ dest: 'uploads/' });
+// Configure multer for memory storage instead of disk storage
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 // Function to extract question numbers and answers from OCR text
 function extractQuestionsAndAnswers(textAnnotations) {
@@ -294,30 +311,42 @@ function extractQuestionsAndAnswers(textAnnotations) {
 
 app.post('/upload', upload.single('image'), async (req, res) => {
   try {
-    const filePath = path.join(__dirname, req.file.path);
+    // Instead of using a file path, we'll use the buffer directly
+    const imageBuffer = req.file.buffer;
+    
     const uploadType = req.body.type || 'student'; // Default to student if not specified
-
-    // Perform document text detection using Google Vision API
-    // This gives more detailed information about text layout compared to simple text detection
-    const [result] = await client.documentTextDetection(filePath);
     
-    // Process the result to extract questions and answers
-    const processedResult = extractQuestionsAndAnswers(result.textAnnotations);
+    // Perform OCR on the image buffer
+    const [result] = await client.textDetection({
+      image: {
+        content: imageBuffer
+      }
+    });
     
-    // Store the extracted data in the appropriate variable
-    if (processedResult.success && processedResult.questionsAndAnswers) {
-      extractedData[uploadType] = processedResult.questionsAndAnswers;
-      
-      // Log the stored data
-      console.log(`\n==== STORED ${uploadType.toUpperCase()} DATA ====`);
-      console.log(JSON.stringify(extractedData[uploadType], null, 2));
-      console.log('=======================================\n');
+    const detections = result.textAnnotations;
+    
+    if (!detections || detections.length === 0) {
+      return res.status(400).json({ error: 'No text detected in the image' });
     }
     
-    res.json(processedResult);
+    // Extract the full text from the first annotation
+    const fullText = detections[0].description;
+    
+    // Extract questions and answers
+    const questionsAndAnswers = extractQuestionsAndAnswers(detections);
+    
+    // Store the data based on the upload type
+    extractedData[uploadType] = questionsAndAnswers;
+    
+    res.json({
+      success: true,
+      text: fullText,
+      data: questionsAndAnswers,
+      type: uploadType
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).send('Error processing the image');
+    console.error('Error processing image:', error);
+    res.status(500).json({ error: 'Failed to process the image' });
   }
 });
 
@@ -1629,11 +1658,21 @@ EVALUATION: [your detailed evaluation]
 // Serve static files like CSS, JS, etc.
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Add better error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  console.error('Error stack:', err.stack);
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: process.env.NODE_ENV === 'production' ? 'Something went wrong' : err.message
+  });
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`Using Gemini model: gemini-1.5-pro`);
-  console.log(`API Key: ${process.env.GEMINI_API_KEY ? 'Configured' : 'Missing'}`);
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log('Server initialization complete');
 }).on('error', (err) => {
   console.error('Server failed to start:', err.message);
   if (err.code === 'EADDRINUSE') {
