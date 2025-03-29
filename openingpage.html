@@ -187,10 +187,12 @@
           }
         } else {
           outputDiv.innerText = result.message || `Failed to extract text from the ${isTeacher ? 'teacher' : 'student'}'s image.`;
+          alert("This is just a prototype. The Cloud Vision API is not yet fully integrated. Please try again later.");
         }
       } catch (error) {
         console.error('Error:', error);
         document.getElementById(outputId).innerText = `Failed to extract text from ${isTeacher ? 'teacher' : 'student'}'s image. Please try again.`;
+        alert("This is just a prototype. The Cloud Vision API is not yet fully integrated. Please try again later.");
       }
     }
     
@@ -218,6 +220,7 @@
           const errorData = await response.json();
           console.error('Error response from server:', errorData);
           alert(`Error: ${errorData.message || 'Could not compare answers. Please try again.'}`);
+          alert("This is just a prototype. The API is not yet fully integrated. Please try again later.");
           document.getElementById('comparison-loading').style.display = 'none';
           return;
         }
@@ -228,6 +231,7 @@
         
         if (!data.success) {
           alert(`Error: ${data.message || 'Could not compare answers. Please try again.'}`);
+          alert("This is just a prototype. The API is not yet fully integrated. Please try again later.");
           document.getElementById('comparison-loading').style.display = 'none';
           return;
         }
@@ -237,6 +241,7 @@
       } catch (error) {
         console.error('Error comparing answers:', error);
         alert('Error comparing answers. Please check the console for details.');
+        alert("This is just a prototype. The API is not yet fully integrated. Please try again later.");
         document.getElementById('comparison-loading').style.display = 'none';
       }
     }
@@ -398,6 +403,7 @@
           const errorData = await response.json();
           console.error('Error response from server:', errorData);
           alert(`Error: ${errorData.message || 'Could not generate feedback. Please try again.'}`);
+          alert("This is just a prototype. The API is not yet fully integrated. Please try again later.");
           document.getElementById('feedback-loading').style.display = 'none';
           return;
         }
@@ -414,10 +420,12 @@
           displayFeedback(data.feedback, data.resources);
         } else {
           alert(`Error: ${data.message || 'Could not generate feedback. Please try again.'}`);
+          alert("This is just a prototype. The API is not yet fully integrated. Please try again later.");
         }
       } catch (error) {
         console.error('Error getting feedback:', error);
         alert('Error getting feedback. Please check the console for details.');
+        alert("This is just a prototype. The API is not yet fully integrated. Please try again later.");
         document.getElementById('feedback-loading').style.display = 'none';
       }
     }
