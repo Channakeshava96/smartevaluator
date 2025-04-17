@@ -5,7 +5,7 @@ A web application that uses OCR and AI to evaluate student answers against teach
 ## 🎥 Demo Video
 <p align="center">
   <a href="https://drive.google.com/file/d/1tZLF-8iEEVqhOVoFaRUCtaBNMaTt8QlN/view?usp=sharing">
-    <img src="assets/demo-thumbnail.png" alt="Demo Video" width="500">
+    <img src="assests/demo-thumbnail.png" alt="Demo Video" width="500">
   </a>
 </p>
 
